@@ -169,8 +169,8 @@ main :: proc() {
     defer delete(floor)
 
     root := generate_bsp(50, 50, 2)
-    generate_tileset_array(root, &grid, &floor)
     print_bsp_tree_text(root, 1)
+    generate_tileset_array(root, &grid, &floor)
 
     auto.initialise_bit_level(grid_width, grid_height)
     new_grid := auto.create_bit_mask(&grid, 1, .wang_corner)

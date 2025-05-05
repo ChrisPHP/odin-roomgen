@@ -6,7 +6,8 @@ import rl "vendor:raylib"
 
 Room :: struct {
     x, y: int,
-    width, height: int
+    width, height: int,
+    entrance: bool,
 }
 
 BSPNode :: struct {
@@ -29,7 +30,7 @@ GRID_WIDTH := 50
 
 new_bsp_node :: proc(x, y, width, height: int) -> ^BSPNode {
     node := new(BSPNode)
-    node.room = Room{x, y, width, height}
+    node.room = Room{x, y, width, height, false}
     node.left = nil
     node.right = nil
     node.is_leaf = true
@@ -114,14 +115,14 @@ split_node :: proc(node: ^BSPNode, iterations: int) -> bool {
             node.room.x,
             node.room.y,
             split_position,
-            node.room.height
+            node.room.height,
         )
 
         node.right = new_bsp_node(
             node.room.x + split_position,
             node.room.y,
             node.room.width - split_position,
-            node.room.height
+            node.room.height,
         )
     }
 
@@ -130,9 +131,49 @@ split_node :: proc(node: ^BSPNode, iterations: int) -> bool {
     split_node(node.left, iterations - 1)
     split_node(node.right, iterations - 1)
 
-
     return true
 }
+
+generate_bsp :: proc(width, height, iterations: int) -> ^BSPNode {
+    GRID_WIDTH = width
+    root := new_bsp_node(0,0, width, height)
+    split_node(root, iterations)
+    return root
+}
+
+print_bsp_tree_text :: proc(node: ^BSPNode, depth: int = 0) {
+    if node == nil {
+        return
+    }
+    
+    // Print indentation
+    for i in 0..<depth {
+        fmt.print("  ")
+    }
+
+    // Print node information
+    fmt.printf("Node: x=%d, y=%d, w=%d, h=%d, leaf=%v\n", 
+               node.room.x, node.room.y, 
+               node.room.width, node.room.height,
+               node.is_leaf)
+    
+    // Recursively print children
+    if !node.is_leaf {
+        print_bsp_tree_text(node.left, depth + 1)
+        print_bsp_tree_text(node.right, depth + 1)
+    } else if is_exterior_node(node, 50,50) {
+        node.room.entrance = false
+    }
+}
+
+is_exterior_node :: proc(node: ^BSPNode, grid_width, grid_height: int) -> bool {
+    // Check if the room has at least one edge on the perimeter
+    return node.room.x == 0 || 
+           node.room.y == 0 || 
+           node.room.x + node.room.width == grid_width || 
+           node.room.y + node.room.height == grid_height
+}
+
 
 generate_tileset_array :: proc(node: ^BSPNode, grid, floor: ^[]int) {
     if node == nil do return
@@ -151,8 +192,11 @@ generate_tileset_array :: proc(node: ^BSPNode, grid, floor: ^[]int) {
 process_leaf_node :: proc(node: ^BSPNode, grid, floor: ^[]int) {
     room := node.room
 
-    door_x := int(rand.float32_range(f32(room.x + 3), f32(room.x + room.width - 3)))
-    door_y := int(rand.float32_range(f32(room.y + 5), f32(room.y + room.height - 5)))    
+    door_x, door_y: int
+    if room.entrance {
+        door_x = int(rand.float32_range(f32(room.x + 3), f32(room.x + room.width - 3)))
+        door_y = int(rand.float32_range(f32(room.y + 5), f32(room.y + room.height - 5)))
+    }
 
     // Process each tile in the room
     for x in room.x..<room.x + room.width {
@@ -160,7 +204,7 @@ process_leaf_node :: proc(node: ^BSPNode, grid, floor: ^[]int) {
             tile_index := y * GRID_WIDTH + x
             
             // Set tile type based on position
-            if x > 3 && y > 3 {
+            if room.entrance {
                 process_tile(x, y, tile_index, room, door_x, door_y, grid, floor)
             } else {
                 process_tile_no_door(x, y, tile_index, room, grid, floor)
@@ -285,34 +329,4 @@ print_bsp_tree :: proc(node: ^BSPNode, depth: int = 0) {
         print_bsp_tree(node.left, depth + 1)
         print_bsp_tree(node.right, depth + 1)
     }
-}
-
-print_bsp_tree_text :: proc(node: ^BSPNode, depth: int = 0) {
-    if node == nil {
-        return
-    }
-    
-    // Print indentation
-    for i in 0..<depth {
-        fmt.print("  ")
-    }
-    
-    // Print node information
-    fmt.printf("Node: x=%d, y=%d, w=%d, h=%d, leaf=%v\n", 
-               node.room.x, node.room.y, 
-               node.room.width, node.room.height,
-               node.is_leaf)
-    
-    // Recursively print children
-    if !node.is_leaf {
-        print_bsp_tree_text(node.left, depth + 1)
-        print_bsp_tree_text(node.right, depth + 1)
-    }
-}
-
-generate_bsp :: proc(width, height, iterations: int) -> ^BSPNode {
-    GRID_WIDTH = width
-    root := new_bsp_node(0,0, width, height)
-    split_node(root, iterations)
-    return root
 }
