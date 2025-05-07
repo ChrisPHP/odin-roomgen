@@ -8,6 +8,15 @@ Room :: struct {
     x, y: int,
     width, height: int,
     entrance: bool,
+    door: [2]int
+}
+
+ExteriorSide :: enum {
+    None,
+    North,
+    East,
+    South,
+    West,
 }
 
 BSPNode :: struct {
@@ -22,15 +31,15 @@ SplitDirection :: enum {
     Vertical
 }
 
-MIN_ROOM_SIZE :: 10  // Minimum width/height for a room
-MAX_ROOM_SIZE :: 20
+MIN_ROOM_SIZE :: 5  // Minimum width/height for a room
+MAX_ROOM_SIZE :: 10
 SPLIT_RATIO_MIN :: 0.4  // Minimum ratio for splitting (30%)
 SPLIT_RATIO_MAX :: 0.6  // Maximum ratio for splitting (70%)
 GRID_WIDTH := 50
 
 new_bsp_node :: proc(x, y, width, height: int) -> ^BSPNode {
     node := new(BSPNode)
-    node.room = Room{x, y, width, height, false}
+    node.room = Room{x, y, width, height, false, {}}
     node.left = nil
     node.right = nil
     node.is_leaf = true
@@ -156,22 +165,67 @@ print_bsp_tree_text :: proc(node: ^BSPNode, depth: int = 0) {
                node.room.x, node.room.y, 
                node.room.width, node.room.height,
                node.is_leaf)
+
+    is_exterior, side := is_exterior_node(node, GRID_WIDTH,GRID_WIDTH)       
     
     // Recursively print children
     if !node.is_leaf {
         print_bsp_tree_text(node.left, depth + 1)
         print_bsp_tree_text(node.right, depth + 1)
-    } else if is_exterior_node(node, 50,50) {
-        node.room.entrance = false
+    } else if is_exterior {
+        node.room.entrance = true
+        room := node.room
+
+        switch side {
+            case .West: // Left edge
+                node.room.door[0] = int(rand.float32_range(f32(room.x + 3), f32(room.x + room.width - 3)))
+                node.room.door[1] = 1
+                
+            case .North: // Top edge
+                node.room.door[0] = 0
+                node.room.door[1] = int(rand.float32_range(f32(room.y + 5), f32(room.y + room.height - 5)))
+                
+            case .East: // Right edge
+                node.room.door[0] = room.x + room.width
+                node.room.door[1] = int(rand.float32_range(f32(room.y + 3), f32(room.x + room.height - 3)))
+                
+            case .South: // Bottom edge
+                node.room.door[0] = int(rand.float32_range(f32(room.x + 3), f32(room.x + room.width - 3)))
+                node.room.door[1] = room.y + room.height
+            case .None:
+
+        }
     }
 }
 
-is_exterior_node :: proc(node: ^BSPNode, grid_width, grid_height: int) -> bool {
-    // Check if the room has at least one edge on the perimeter
-    return node.room.x == 0 || 
-           node.room.y == 0 || 
-           node.room.x + node.room.width == grid_width || 
-           node.room.y + node.room.height == grid_height
+is_exterior_node :: proc(node: ^BSPNode, grid_width, grid_height: int) -> (bool, ExteriorSide) {
+    if node == nil {
+        return false, .None
+    }
+    
+    // Check which sides are connected to the exterior
+    
+    // West side (left edge)
+    if node.room.x == 0 {
+        return true, .West
+    }
+    
+    // North side (top edge)
+    if node.room.y == 0 {
+        return true, .North
+    }
+    
+    // East side (right edge)
+    if node.room.x + node.room.width == grid_width {
+        return true, .East
+    }
+    
+    // South side (bottom edge)
+    if node.room.y + node.room.height == grid_height {
+        return true, .South
+    }
+    
+    return false, .None
 }
 
 
@@ -205,7 +259,7 @@ process_leaf_node :: proc(node: ^BSPNode, grid, floor: ^[]int) {
             
             // Set tile type based on position
             if room.entrance {
-                process_tile(x, y, tile_index, room, door_x, door_y, grid, floor)
+                process_tile(x, y, tile_index, room, room.door[0], room.door[1], grid, floor)
             } else {
                 process_tile_no_door(x, y, tile_index, room, grid, floor)
             }
@@ -218,10 +272,10 @@ process_tile_no_door :: proc(x, y, tile_index: int, room: Room, grid, floor: ^[]
     grid[tile_index] = 1
     
     // Outer walls
-    if x == room.x || y == room.y {
+    if x == room.x || y == room.y || x == GRID_WIDTH-1 || y == GRID_WIDTH-1 {
         grid[tile_index] = 0
+        return 
     }
-    
     // Inner floor area (simpler version without door considerations)
     inner_x := room.x + 1
     inner_y := room.y + 1
@@ -232,7 +286,7 @@ process_tile_no_door :: proc(x, y, tile_index: int, room: Room, grid, floor: ^[]
         if x < room_right - 1 {
             floor[tile_index] = 1
         }
-        if y >= inner_y && y <= inner_y + 2 {
+        if y >= inner_y && y <= inner_y + 2 && x < GRID_WIDTH-2 {
             if x >= inner_x && x <= room_right - 2 {
                 floor[tile_index] = 2
             }
@@ -245,7 +299,7 @@ process_tile :: proc(x, y, tile_index: int, room: Room, door_x, door_y: int, gri
     grid[tile_index] = 1
     
     // Outer walls
-    if x == room.x || y == room.y {
+    if x == room.x || y == room.y || x == GRID_WIDTH-1 || y == GRID_WIDTH-1  {
         grid[tile_index] = 0
     }
     
@@ -282,7 +336,7 @@ process_inner_floor :: proc(x, y, tile_index: int, room: Room, door_x, door_y: i
         }
         
         // Special floor tiles near entrance
-        if y >= inner_y && y <= inner_y + 2 {
+        if y >= inner_y && y <= inner_y + 2 && x < GRID_WIDTH-2  {
             if x >= inner_x && x <= room_right - 2 {
                 floor[tile_index] = 2
             }
