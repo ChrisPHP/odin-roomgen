@@ -169,7 +169,7 @@ main :: proc() {
     defer delete(floor)
 
     root := generate_bsp(50, 50, 2)
-    print_bsp_tree_text(root, 1)
+    generate_room_details(root, .North)
     generate_tileset_array(root, &grid, &floor)
 
     auto.initialise_bit_level(grid_width, grid_height)
