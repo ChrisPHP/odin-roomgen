@@ -169,54 +169,20 @@ main :: proc() {
     defer delete(floor)
 
     root := generate_bsp(50, 50, 2)
-    print_bsp_tree_text(root, 1)
-    generate_tileset_array(root, &grid, &floor)
-
-    auto.initialise_bit_level(grid_width, grid_height)
-    new_grid := auto.create_bit_mask(&grid, 1, .wang_corner)
-    new_floor := auto.create_bit_mask(&floor, 2, .wang_edge)
-    defer delete(new_floor)
-    defer delete(new_grid)
-    /*
-    auto.initialise_bit_level(grid_width, grid_height)
-
-    
-    blocks, floor, grid := gen_rooms(grid_width, grid_height, 5)
-    defer delete(grid)
-    defer delete(blocks)
-    defer delete(floor)
-
-    new_grid := auto.create_bit_mask(&grid, 1, .wang_corner)
-    new_floor := auto.create_bit_mask(&floor, 2, .wang_edge)
-    defer delete(new_floor)
-    defer delete(new_grid)
-    */
+    generate_room_array(root, &grid)
 
     for !rl.WindowShouldClose() {
         rl.BeginDrawing()
         rl.ClearBackground(rl.BLACK)
 
-
-        //print_bsp_tree(root, 1)
         
         for x in 0..<grid_width {
             for y in 0..<grid_height {
                 size := y * grid_width + x
-                val := new_grid[size]
-                val1 := floor[size]
-                val2 := new_floor[size]
-
-                if val1 == 1 {
-                    render_texture(x,y, {5, 3})
-                }
-                if val != 15{
-                    pos := auto.select_tile_type(val, .wang_corner)
-                    render_texture(x,y, pos)   
-                }
-                if val2 != 0 {
-                    pos := auto.select_tile_type(val2, .wang_edge)
-                    pos[0] += 4
-                    render_texture(x,y, pos) 
+                val := grid[size]
+                
+                if val == 1 {
+                    rl.DrawRectangle(i32(x)*32, i32(y)*32,32, 32, rl.RED)
                 }
             }
         }
