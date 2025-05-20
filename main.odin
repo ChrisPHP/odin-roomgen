@@ -168,8 +168,10 @@ main :: proc() {
     defer delete(grid)
     defer delete(floor)
 
-    root := generate_bsp(50, 50, 2)
+    root := generate_bsp(50, 25,50, 1, {0, 25})
+    root_2 := generate_bsp(50, 25,50, 2, {0, 0})
     generate_room_array(root, &grid)
+    generate_room_array(root_2, &grid)
 
     for !rl.WindowShouldClose() {
         rl.BeginDrawing()
@@ -183,7 +185,27 @@ main :: proc() {
                 
                 if val == 1 {
                     rl.DrawRectangle(i32(x)*32, i32(y)*32,32, 32, rl.RED)
+                } else if val == 2 {
+                    rl.DrawRectangle(i32(x)*32, i32(y)*32,32, 32, rl.GREEN)
                 }
+                /*
+                val := new_grid[size]
+                val1 := floor[size]
+                val2 := new_floor[size]
+
+                if val1 == 1 {
+                    render_texture(x,y, {5, 3})
+                }
+                if val != 15{
+                    pos := auto.select_tile_type(val, .wang_corner)
+                    render_texture(x,y, pos)   
+                }
+                if val2 != 0 {
+                    pos := auto.select_tile_type(val2, .wang_edge)
+                    pos[0] += 4
+                    render_texture(x,y, pos) 
+                }
+                */
             }
         }
         
@@ -192,6 +214,7 @@ main :: proc() {
     }
 
     free_bsp_tree(root)
+    free_bsp_tree(root_2)
     rl.UnloadTexture(TEXTURE)
     rl.CloseWindow()
 }

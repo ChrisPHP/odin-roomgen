@@ -10,7 +10,15 @@ Room :: struct {
     entrance: bool,
     exterior: bool,
     direction: ExteriorSide,
-    door: [2]int 
+    doors: [2]int 
+}
+
+RoomTypes :: enum {
+    Living,
+    Kitchen,
+    Bedroom,
+    Bathroom,
+    Hallway
 }
 
 ExteriorSide :: enum {
@@ -34,11 +42,15 @@ SplitDirection :: enum {
 }
 
 MIN_ROOM_SIZE :: 5  // Minimum width/height for a room
-MAX_ROOM_SIZE :: 10
+MAX_ROOM_SIZE :: 20
 SPLIT_RATIO_MIN :: 0.4  // Minimum ratio for splitting (30%)
 SPLIT_RATIO_MAX :: 0.6  // Maximum ratio for splitting (70%)
 GRID_WIDTH := 50
 EXTERIOR_DOOR := false
+
+rand_int_range :: proc(start, end: int) -> int {
+    return int(rand.float32_range(f32(start), f32(end)))
+}
 
 new_bsp_node :: proc(x, y, width, height: int) -> ^BSPNode {
     node := new(BSPNode)
@@ -104,7 +116,7 @@ split_node :: proc(node: ^BSPNode, iterations: int) -> bool {
         min_split := i32(f32_height * SPLIT_RATIO_MIN)
         max_split := i32(f32_height * SPLIT_RATIO_MAX)
         split_position = int(min_split + rand.int31() % (max_split - min_split + 1))
-
+        
         node.left = new_bsp_node(
             node.room.x,
             node.room.y,
@@ -118,6 +130,13 @@ split_node :: proc(node: ^BSPNode, iterations: int) -> bool {
             node.room.width,
             node.room.height - split_position,
         )
+
+        max_door_x := node.room.x+node.room.width - 3
+        min_door_x := node.room.x + 3
+        if max_door_x > 0 && min_door_x > 0 {
+            door_x := rand_int_range(min_door_x, max_door_x)
+            node.room.doors = [2]int{door_x, node.room.y+ split_position}
+        }
     } else {
         min_split := i32(f32_width * SPLIT_RATIO_MIN)
         max_split := i32(f32_width * SPLIT_RATIO_MAX)
@@ -136,6 +155,13 @@ split_node :: proc(node: ^BSPNode, iterations: int) -> bool {
             node.room.width - split_position,
             node.room.height,
         )
+    
+        max_door_y := node.room.y+node.room.height - 3
+        min_door_y := node.room.y + 3
+        if max_door_y > 0 && min_door_y > 0 {
+            door_y := rand_int_range(min_door_y, max_door_y)
+            node.room.doors = [2]int{node.room.x+split_position, door_y}
+        }
     }
 
     node.is_leaf = false
@@ -146,25 +172,47 @@ split_node :: proc(node: ^BSPNode, iterations: int) -> bool {
     return true
 }
 
-generate_bsp :: proc(width, height, iterations: int) -> ^BSPNode {
-    GRID_WIDTH = width
-    root := new_bsp_node(0,0, width, height)
+generate_bsp :: proc(width, height, grid_width, iterations: int, start: [2]int) -> ^BSPNode {
+    GRID_WIDTH = grid_width
+    
+    root := new_bsp_node(start[0],start[1], width, height)
     split_node(root, iterations)
     return root
 }
 
 generate_room_array :: proc(node: ^BSPNode, grid: ^[]int) {
     if node == nil do return
-
+    
     if !node.is_leaf {
         generate_room_array(node.left, grid)
         generate_room_array(node.right, grid)
+        process_doors(node.room.doors, grid)
         return
     }
 
     process_leaf(node, grid)
 }
 
+process_outer_edge :: proc(x, y:int, room: Room) -> bool {
+    width := room.x+room.width-1
+    height := room.y+room.height-1
+    return x==0 || y==0 || y==height || x==width
+}
+
+process_inner_wall :: proc(x, y:int, room: Room) -> bool {
+    width := room.x+room.width-2
+    height := room.y+room.height-2
+    return x==1 || y==1 || x==room.x || y==room.y || x==width || y == height
+}
+
+process_doors :: proc(door: [2]int, grid: ^[]int) {
+    for x in 0..<3 {
+        for y in 0..<3 {
+            tile_index := (door[1]-y) * GRID_WIDTH + (door[0]-x)
+            grid[tile_index] = 2 
+        }  
+    }
+}
 
 process_leaf :: proc(node: ^BSPNode, grid: ^[]int) {
     room := node.room
@@ -172,9 +220,10 @@ process_leaf :: proc(node: ^BSPNode, grid: ^[]int) {
     for x in room.x..<room.x + room.width {
         for y in room.y..<room.y + room.height {
             tile_index := y * GRID_WIDTH + x
-            if x == 0 || y == 0 || y == room.y+room.height-1 || x == room.x+room.width-1{
+            grid[tile_index] = 0
+            if process_outer_edge(x,y,room) {
                 grid[tile_index] = 0
-            } else {
+            } else if process_inner_wall(x,y,room) {
                 grid[tile_index] = 1
             }
         }
