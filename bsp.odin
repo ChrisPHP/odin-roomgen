@@ -7,18 +7,23 @@ import rl "vendor:raylib"
 Room :: struct {
     x, y: int,
     width, height: int,
+    size: int,
     entrance: bool,
     exterior: bool,
+    type: RoomTypes,
     direction: ExteriorSide,
     doors: [2]int 
 }
 
 RoomTypes :: enum {
+    None,
     Living,
     Kitchen,
     Bedroom,
     Bathroom,
-    Hallway
+    Toilet,
+    Hallway,
+    Wardrobe
 }
 
 ExteriorSide :: enum {
@@ -54,7 +59,7 @@ rand_int_range :: proc(start, end: int) -> int {
 
 new_bsp_node :: proc(x, y, width, height: int) -> ^BSPNode {
     node := new(BSPNode)
-    node.room = Room{x, y, width, height, false, false, .None, {}}
+    node.room = Room{x, y, width, height, width*height, false, false, .None, .None, {}}
     node.left = nil
     node.right = nil
     node.is_leaf = true

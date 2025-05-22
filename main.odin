@@ -168,6 +168,8 @@ main :: proc() {
     defer delete(grid)
     defer delete(floor)
 
+    generate_house(2, 50, 50)
+
     root := generate_bsp(50, 25,50, 1, {0, 25})
     root_2 := generate_bsp(50, 25,50, 2, {0, 0})
     generate_room_array(root, &grid)
