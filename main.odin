@@ -168,12 +168,7 @@ main :: proc() {
     defer delete(grid)
     defer delete(floor)
 
-    generate_house(2, 50, 50)
-
-    root := generate_bsp(50, 25,50, 1, {0, 25})
-    root_2 := generate_bsp(50, 25,50, 2, {0, 0})
-    generate_room_array(root, &grid)
-    generate_room_array(root_2, &grid)
+    generate_house(&grid, 2, 50, 50)
 
     for !rl.WindowShouldClose() {
         rl.BeginDrawing()
@@ -214,9 +209,6 @@ main :: proc() {
 
         rl.EndDrawing()
     }
-
-    free_bsp_tree(root)
-    free_bsp_tree(root_2)
     rl.UnloadTexture(TEXTURE)
     rl.CloseWindow()
 }

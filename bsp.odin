@@ -136,12 +136,6 @@ split_node :: proc(node: ^BSPNode, iterations: int) -> bool {
             node.room.height - split_position,
         )
 
-        max_door_x := node.room.x+node.room.width - 3
-        min_door_x := node.room.x + 3
-        if max_door_x > 0 && min_door_x > 0 {
-            door_x := rand_int_range(min_door_x, max_door_x)
-            node.room.doors = [2]int{door_x, node.room.y+ split_position}
-        }
     } else {
         min_split := i32(f32_width * SPLIT_RATIO_MIN)
         max_split := i32(f32_width * SPLIT_RATIO_MAX)
@@ -160,13 +154,6 @@ split_node :: proc(node: ^BSPNode, iterations: int) -> bool {
             node.room.width - split_position,
             node.room.height,
         )
-    
-        max_door_y := node.room.y+node.room.height - 3
-        min_door_y := node.room.y + 3
-        if max_door_y > 0 && min_door_y > 0 {
-            door_y := rand_int_range(min_door_y, max_door_y)
-            node.room.doors = [2]int{node.room.x+split_position, door_y}
-        }
     }
 
     node.is_leaf = false
