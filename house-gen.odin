@@ -15,7 +15,7 @@ generate_house :: proc(grid: ^[]int, bedrooms, width, int: int) {
     private_rooms := make([dynamic]Room)
     hallway_rooms := make([dynamic]Room)
 
-    public_root := generate_bsp(50, 25,50, 4, {0, 0})
+    public_root := generate_bsp(50, 25,50, 3, {0, 0})
     room_to_array(public_root, &public_rooms)
 
     hallway_root := generate_bsp(50, 10, 50, 0, {0,25})
@@ -27,9 +27,12 @@ generate_house :: proc(grid: ^[]int, bedrooms, width, int: int) {
     generate_grid_array(&public_rooms, grid)
     generate_grid_array(&private_rooms, grid)
     generate_grid_array(&hallway_rooms, grid)
-
+ 
     assign_room_public(&public_rooms)
     assign_room_private(&private_rooms)
+
+    find_hallway_connection(hallway_rooms[0], &public_rooms, grid)
+    find_hallway_connection(hallway_rooms[0], &private_rooms, grid)
 
     free_bsp_tree(public_root)
     free_bsp_tree(hallway_root)
@@ -126,6 +129,49 @@ assign_room_private :: proc(room_array: ^[dynamic]Room) {
             r.type = .Bathroom
         } else {
             r.type = .Wardrobe
+        }
+    }
+}
+
+find_hallway_connection :: proc(hallway: Room, rooms: ^[dynamic]Room, grid: ^[]int) {
+    door: [2]int
+
+    for r in rooms {
+        if hallway.y == r.y+r.height {
+            overlap_start := max(r.x, hallway.x)
+            overlap_end := min(r.x+r.width, hallway.x+hallway.width)-1
+            
+            door_x := rand_int_range(overlap_start+3, overlap_end-3)
+            door = [2]int{door_x, (r.y+r.height)-2}
+            break
+        } else if hallway.x == r.x+r.width {
+            overlap_start := max(r.y, hallway.y)
+            overlap_end := min(r.y+r.height, hallway.y+hallway.height)-1
+            
+            door_y := rand_int_range(overlap_start+3, overlap_end-3)
+            door = [2]int{(r.x+r.width)-2, door_y}
+            break
+        } else if hallway.y+hallway.height == r.y {
+            overlap_start := max(r.x, hallway.x)
+            overlap_end := min(r.x+r.width, hallway.x+hallway.width)-1
+            
+            door_x := rand_int_range(overlap_start+3, overlap_end-3)
+            door = [2]int{door_x, r.y-2}
+            break
+        } else if hallway.x+hallway.width == r.x {
+            overlap_start := max(r.y, hallway.y)
+            overlap_end := min(r.y+r.height, hallway.y+hallway.height)-1
+            
+            door_y := rand_int_range(overlap_start+3, overlap_end-3)
+            door = [2]int{r.x-2, door_y}
+            break
+        }
+    }
+
+    for x in 0..<3 {
+        for y in 0..<3 {
+            tile_index := (door[1]+y) * GRID_WIDTH + (door[0]+x)
+            grid[tile_index] = 2
         }
     }
 }
