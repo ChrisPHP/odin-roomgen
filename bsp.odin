@@ -19,6 +19,7 @@ RoomTypes :: enum {
     None,
     Living,
     Kitchen,
+    Dining,
     Bedroom,
     Bathroom,
     Toilet,
@@ -107,7 +108,7 @@ should_split :: proc(width, height: int) -> bool {
 }
 
 split_node :: proc(node: ^BSPNode, iterations: int) -> bool {
-    if iterations <= 0 || !should_split(node.room.width, node.room.width) {
+    if iterations <= 1 || !should_split(node.room.width, node.room.width) {
         return false
     }
 
@@ -158,8 +159,12 @@ split_node :: proc(node: ^BSPNode, iterations: int) -> bool {
 
     node.is_leaf = false
 
-    split_node(node.left, iterations - 1)
-    split_node(node.right, iterations - 1)
+    val := rand.float32()
+    if val > 0.5 {
+        split_node(node.left, iterations - 1)
+    } else {
+        split_node(node.right, iterations - 1)
+    }
 
     return true
 }

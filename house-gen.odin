@@ -15,21 +15,21 @@ generate_house :: proc(grid: ^[]int, bedrooms, width, int: int) {
     private_rooms := make([dynamic]Room)
     hallway_rooms := make([dynamic]Room)
 
-    public_root := generate_bsp(50, 25,50, 2, {0, 0})
+    public_root := generate_bsp(50, 25,50, 4, {0, 0})
     room_to_array(public_root, &public_rooms)
 
     hallway_root := generate_bsp(50, 10, 50, 0, {0,25})
     room_to_array(hallway_root, &hallway_rooms)
 
-    private_root := generate_bsp(25, 15, 50, 1, {0,35})
+    private_root := generate_bsp(50, 15, 50, 2, {0,35})
     room_to_array(private_root, &private_rooms)
-
-    //assign_room_public(&public_rooms)
-    //assign_room_private(&private_rooms)
 
     generate_grid_array(&public_rooms, grid)
     generate_grid_array(&private_rooms, grid)
     generate_grid_array(&hallway_rooms, grid)
+
+    assign_room_public(&public_rooms)
+    assign_room_private(&private_rooms)
 
     free_bsp_tree(public_root)
     free_bsp_tree(hallway_root)
@@ -62,13 +62,13 @@ generate_grid_array :: proc(rooms: ^[dynamic]Room, grid: ^[]int) {
                 overlap_start := max(last_room.y, room.y)
                 overlap_end := max(last_room.y+last_room.height, room.y+room.height)-1
                 
-                door_y := rand_int_range(overlap_start+2, overlap_end-2)
+                door_y := rand_int_range(overlap_start+3, overlap_end-3)
                 append(&doors, [2]int{last_room.x+last_room.width-2, door_y})
             } else if last_room.y+last_room.height == room.y {
                 overlap_start := max(last_room.x, room.x)
                 overlap_end := max(last_room.x+last_room.width, room.x+room.width)-1
                 
-                door_x := rand_int_range(overlap_start+2, overlap_end-2)
+                door_x := rand_int_range(overlap_start+3, overlap_end-3)
                 append(&doors, [2]int{door_x, last_room.y+last_room.height-2})
             }
         }
@@ -107,9 +107,9 @@ assign_room_public :: proc(room_array: ^[dynamic]Room) {
         if i == 0 {
             r.type = .Living
         } else if i == 1 {
-            r.type = .Kitchen
+            r.type = .Dining
         } else {
-            r.type = .Toilet
+            r.type = .Kitchen
         }
     }
 }
