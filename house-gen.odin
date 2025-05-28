@@ -8,8 +8,9 @@ sort_rooms :: proc(a, b: Room) -> int {
     return b.size - a.size
 }
  
-generate_house :: proc(grid: ^[]int, bedrooms, width, int: int) {
-
+generate_house :: proc(bedrooms, width, height: int) -> ([]int, []int) {
+    grid := make([]int, width*height)
+    floor := make([]int, width*height)
 
     public_rooms := make([dynamic]Room)
     private_rooms := make([dynamic]Room)
@@ -24,15 +25,15 @@ generate_house :: proc(grid: ^[]int, bedrooms, width, int: int) {
     private_root := generate_bsp(50, 15, 50, 2, {0,35})
     room_to_array(private_root, &private_rooms)
 
-    generate_grid_array(&public_rooms, grid)
-    generate_grid_array(&private_rooms, grid)
-    generate_grid_array(&hallway_rooms, grid)
+    generate_grid_array(&public_rooms, &grid)
+    generate_grid_array(&private_rooms, &grid)
+    generate_grid_array(&hallway_rooms, &grid)
  
     assign_room_public(&public_rooms)
     assign_room_private(&private_rooms)
 
-    find_hallway_connection(hallway_rooms[0], &public_rooms, grid)
-    find_hallway_connection(hallway_rooms[0], &private_rooms, grid)
+    find_hallway_connection(hallway_rooms[0], &public_rooms, &grid)
+    find_hallway_connection(hallway_rooms[0], &private_rooms, &grid)
 
     free_bsp_tree(public_root)
     free_bsp_tree(hallway_root)
@@ -40,6 +41,8 @@ generate_house :: proc(grid: ^[]int, bedrooms, width, int: int) {
     delete(private_rooms)
     delete(hallway_rooms)
     delete(public_rooms)
+
+    return grid, floor
 }
 
 generate_grid_array :: proc(rooms: ^[dynamic]Room, grid: ^[]int) {
@@ -51,7 +54,7 @@ generate_grid_array :: proc(rooms: ^[dynamic]Room, grid: ^[]int) {
         for x in room.x..<room.x + room.width {
             for y in room.y..<room.y + room.height {
                 tile_index := y * GRID_WIDTH + x
-                grid[tile_index] = 0
+                grid[tile_index] = 1
                 if process_outer_edge(x,y,room) {
                     grid[tile_index] = 0
                 } else if process_inner_wall(x,y,room) {
@@ -82,7 +85,7 @@ generate_grid_array :: proc(rooms: ^[dynamic]Room, grid: ^[]int) {
         for x in 0..<3 {
             for y in 0..<3 {
                 tile_index := (d[1]+y) * GRID_WIDTH + (d[0]+x)
-                grid[tile_index] = 2
+                grid[tile_index] = 1
             }
         }
     }
@@ -171,7 +174,7 @@ find_hallway_connection :: proc(hallway: Room, rooms: ^[dynamic]Room, grid: ^[]i
     for x in 0..<3 {
         for y in 0..<3 {
             tile_index := (door[1]+y) * GRID_WIDTH + (door[0]+x)
-            grid[tile_index] = 2
+            grid[tile_index] = 1
         }
     }
 }

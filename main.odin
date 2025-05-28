@@ -163,12 +163,14 @@ main :: proc() {
     grid_width := 50
     grid_height := 50
     
-    grid := make([]int, grid_width*grid_height)
-    floor := make([]int, grid_width*grid_height)
+    auto.initialise_bit_level(grid_width, grid_height)
+
+    grid, floor := generate_house(2, grid_width, grid_height)
     defer delete(grid)
     defer delete(floor)
 
-    generate_house(&grid, 2, 50, 50)
+    new_grid := auto.create_bit_mask(&grid, 1, .wang_corner)
+    defer delete(new_grid)
 
     for !rl.WindowShouldClose() {
         rl.BeginDrawing()
@@ -178,31 +180,25 @@ main :: proc() {
         for x in 0..<grid_width {
             for y in 0..<grid_height {
                 size := y * grid_width + x
+                /*
                 val := grid[size]
                 
-                if val == 1 {
+                if val == 0 {
                     rl.DrawRectangle(i32(x)*32, i32(y)*32,32, 32, rl.RED)
                 } else if val == 2 {
                     rl.DrawRectangle(i32(x)*32, i32(y)*32,32, 32, rl.GREEN)
                 }
-                /*
-                val := new_grid[size]
-                val1 := floor[size]
-                val2 := new_floor[size]
+                */
 
-                if val1 == 1 {
-                    render_texture(x,y, {5, 3})
-                }
+                
+                val := new_grid[size]
+
+
                 if val != 15{
                     pos := auto.select_tile_type(val, .wang_corner)
                     render_texture(x,y, pos)   
                 }
-                if val2 != 0 {
-                    pos := auto.select_tile_type(val2, .wang_edge)
-                    pos[0] += 4
-                    render_texture(x,y, pos) 
-                }
-                */
+                
             }
         }
         

@@ -197,9 +197,10 @@ process_outer_edge :: proc(x, y:int, room: Room) -> bool {
 }
 
 process_inner_wall :: proc(x, y:int, room: Room) -> bool {
-    width := room.x+room.width-2
-    height := room.y+room.height-2
-    return x==1 || y==1 || x==room.x || y==room.y || x==width || y == height
+    width := room.x+room.width
+    height := room.y+room.height
+
+    return x==0 || y==0 || x==room.x || y==room.y || x==width || y == height
 }
 
 process_doors :: proc(door: [2]int, grid: ^[]int) {
