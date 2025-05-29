@@ -200,14 +200,15 @@ main :: proc() {
                 if val1 == 1 {
                     render_texture(x,y, {5, 3})
                 }
-                if val != 15{
-                    pos := auto.select_tile_type(val, .wang_corner)
-                    render_texture(x,y, pos)   
-                }
+
                 if val2 != 0 {
                     pos := auto.select_tile_type(val2, .wang_edge)
                     pos[0] += 4
                     render_texture(x,y, pos) 
+                }
+                if val != 15{
+                    pos := auto.select_tile_type(val, .wang_corner)
+                    render_texture(x,y, pos)   
                 }
                 
             }

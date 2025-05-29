@@ -4,6 +4,11 @@ import "core:math/rand"
 import "core:fmt"
 import "core:sort"
 
+Door :: struct {
+    x, y: int,
+    vertical: bool
+}
+
 sort_rooms :: proc(a, b: Room) -> int {
     return b.size - a.size
 }
@@ -32,8 +37,8 @@ generate_house :: proc(bedrooms, width, height: int) -> ([]int, []int) {
     assign_room_public(&public_rooms)
     assign_room_private(&private_rooms)
 
-    find_hallway_connection(hallway_rooms[0], &public_rooms, &grid)
-    find_hallway_connection(hallway_rooms[0], &private_rooms, &grid)
+    find_hallway_connection(hallway_rooms[0], &public_rooms, &grid, &floor)
+    find_hallway_connection(hallway_rooms[0], &private_rooms, &grid, &floor)
 
     free_bsp_tree(public_root)
     free_bsp_tree(hallway_root)
@@ -48,7 +53,7 @@ generate_house :: proc(bedrooms, width, height: int) -> ([]int, []int) {
 generate_grid_array :: proc(rooms: ^[dynamic]Room, grid, floor: ^[]int) {
 
     last_room: Room
-    doors := make([dynamic][2]int)
+    doors := make([dynamic]Door)
 
     for room, index in rooms {
         for x in room.x..<room.x + room.width {
@@ -61,15 +66,13 @@ generate_grid_array :: proc(rooms: ^[dynamic]Room, grid, floor: ^[]int) {
                     grid[tile_index] = 1
                 }
 
-                if y > 0 && x > 0 && x < room.x+room.width-2 && y < room.y+3 {
-                    floor[tile_index] = 2
-                }
-                if y >= room.y+3 {
-                    floor[tile_index] = 1 
-                } 
-
-                if y == 3 && x > 0 && x < room.x+room.width-2 {
-                    floor[tile_index] = 2
+                if y > 0 && x > 0 && x < room.x+room.width-2 {
+                    if y >= room.y+3  {
+                        floor[tile_index] = 1 
+                    } 
+                    if y < room.y+3 || y == 3 {
+                        floor[tile_index] = 2
+                    }
                 }
             }
         }
@@ -80,13 +83,23 @@ generate_grid_array :: proc(rooms: ^[dynamic]Room, grid, floor: ^[]int) {
                 overlap_end := max(last_room.y+last_room.height, room.y+room.height)-1
                 
                 door_y := rand_int_range(overlap_start+3, overlap_end-3)
-                append(&doors, [2]int{last_room.x+last_room.width-2, door_y})
+                new_door := Door{
+                    x=last_room.x+last_room.width-2,
+                    y=door_y,
+                    vertical=true
+                }
+                append(&doors, new_door)
             } else if last_room.y+last_room.height == room.y {
                 overlap_start := max(last_room.x, room.x)
                 overlap_end := max(last_room.x+last_room.width, room.x+room.width)-1
                 
                 door_x := rand_int_range(overlap_start+3, overlap_end-3)
-                append(&doors, [2]int{door_x, last_room.y+last_room.height-2})
+                new_door := Door{
+                    x=door_x,
+                    y=last_room.y+last_room.height-2,
+                    vertical=false
+                }
+                append(&doors, new_door)
             }
         }
         last_room = room
@@ -94,9 +107,18 @@ generate_grid_array :: proc(rooms: ^[dynamic]Room, grid, floor: ^[]int) {
 
     for d in doors {
         for x in 0..<3 {
-            for y in 0..<3 {
-                tile_index := (d[1]+y) * GRID_WIDTH + (d[0]+x)
+            for y in 0..<5 {
+                tile_index := (d.y+y) * GRID_WIDTH + (d.x+x)
                 grid[tile_index] = 1
+                floor[tile_index] = 1
+                if d.vertical {
+                    if y < 3 && x < 2 {
+                        floor[tile_index] = 2
+                    }
+                } else if x < 2 {
+                    tile_index = (d.y+y+2) * GRID_WIDTH + (d.x+x)
+                    floor[tile_index] = 1
+                }
             }
         }
     }
@@ -147,8 +169,9 @@ assign_room_private :: proc(room_array: ^[dynamic]Room) {
     }
 }
 
-find_hallway_connection :: proc(hallway: Room, rooms: ^[dynamic]Room, grid: ^[]int) {
+find_hallway_connection :: proc(hallway: Room, rooms: ^[dynamic]Room, grid, floor: ^[]int) {
     door: [2]int
+    vertical := false
 
     for r in rooms {
         if hallway.y == r.y+r.height {
@@ -157,6 +180,7 @@ find_hallway_connection :: proc(hallway: Room, rooms: ^[dynamic]Room, grid: ^[]i
             
             door_x := rand_int_range(overlap_start+3, overlap_end-3)
             door = [2]int{door_x, (r.y+r.height)-2}
+            vertical = false
             break
         } else if hallway.x == r.x+r.width {
             overlap_start := max(r.y, hallway.y)
@@ -164,6 +188,7 @@ find_hallway_connection :: proc(hallway: Room, rooms: ^[dynamic]Room, grid: ^[]i
             
             door_y := rand_int_range(overlap_start+3, overlap_end-3)
             door = [2]int{(r.x+r.width)-2, door_y}
+            vertical = true
             break
         } else if hallway.y+hallway.height == r.y {
             overlap_start := max(r.x, hallway.x)
@@ -171,6 +196,7 @@ find_hallway_connection :: proc(hallway: Room, rooms: ^[dynamic]Room, grid: ^[]i
             
             door_x := rand_int_range(overlap_start+3, overlap_end-3)
             door = [2]int{door_x, r.y-2}
+            vertical = false
             break
         } else if hallway.x+hallway.width == r.x {
             overlap_start := max(r.y, hallway.y)
@@ -178,14 +204,20 @@ find_hallway_connection :: proc(hallway: Room, rooms: ^[dynamic]Room, grid: ^[]i
             
             door_y := rand_int_range(overlap_start+3, overlap_end-3)
             door = [2]int{r.x-2, door_y}
+            vertical = true
             break
         }
     }
 
+    
     for x in 0..<3 {
         for y in 0..<3 {
             tile_index := (door[1]+y) * GRID_WIDTH + (door[0]+x)
             grid[tile_index] = 1
+            if !vertical && x < 2 {
+                tile_index = (door[1]+y+2) * GRID_WIDTH + (door[0]+x)
+                floor[tile_index] = 1
+            }
         }
     }
 }

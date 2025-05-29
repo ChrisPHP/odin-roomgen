@@ -47,7 +47,7 @@ SplitDirection :: enum {
     Vertical
 }
 
-MIN_ROOM_SIZE :: 5  // Minimum width/height for a room
+MIN_ROOM_SIZE :: 10  // Minimum width/height for a room
 MAX_ROOM_SIZE :: 20
 SPLIT_RATIO_MIN :: 0.4  // Minimum ratio for splitting (30%)
 SPLIT_RATIO_MAX :: 0.6  // Maximum ratio for splitting (70%)
