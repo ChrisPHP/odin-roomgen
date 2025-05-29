@@ -25,9 +25,9 @@ generate_house :: proc(bedrooms, width, height: int) -> ([]int, []int) {
     private_root := generate_bsp(50, 15, 50, 2, {0,35})
     room_to_array(private_root, &private_rooms)
 
-    generate_grid_array(&public_rooms, &grid)
-    generate_grid_array(&private_rooms, &grid)
-    generate_grid_array(&hallway_rooms, &grid)
+    generate_grid_array(&public_rooms, &grid, &floor)
+    generate_grid_array(&private_rooms, &grid, &floor)
+    generate_grid_array(&hallway_rooms, &grid, &floor)
  
     assign_room_public(&public_rooms)
     assign_room_private(&private_rooms)
@@ -45,7 +45,7 @@ generate_house :: proc(bedrooms, width, height: int) -> ([]int, []int) {
     return grid, floor
 }
 
-generate_grid_array :: proc(rooms: ^[dynamic]Room, grid: ^[]int) {
+generate_grid_array :: proc(rooms: ^[dynamic]Room, grid, floor: ^[]int) {
 
     last_room: Room
     doors := make([dynamic][2]int)
@@ -59,6 +59,17 @@ generate_grid_array :: proc(rooms: ^[dynamic]Room, grid: ^[]int) {
                     grid[tile_index] = 0
                 } else if process_inner_wall(x,y,room) {
                     grid[tile_index] = 1
+                }
+
+                if y > 0 && x > 0 && x < room.x+room.width-2 && y < room.y+3 {
+                    floor[tile_index] = 2
+                }
+                if y >= room.y+3 {
+                    floor[tile_index] = 1 
+                } 
+
+                if y == 3 && x > 0 && x < room.x+room.width-2 {
+                    floor[tile_index] = 2
                 }
             }
         }

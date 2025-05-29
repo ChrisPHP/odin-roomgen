@@ -170,7 +170,9 @@ main :: proc() {
     defer delete(floor)
 
     new_grid := auto.create_bit_mask(&grid, 1, .wang_corner)
+    new_floor := auto.create_bit_mask(&floor, 2, .wang_edge)
     defer delete(new_grid)
+    defer delete(new_floor)
 
     for !rl.WindowShouldClose() {
         rl.BeginDrawing()
@@ -192,11 +194,20 @@ main :: proc() {
 
                 
                 val := new_grid[size]
+                val1 := floor[size]
+                val2 := new_floor[size]
 
-
+                if val1 == 1 {
+                    render_texture(x,y, {5, 3})
+                }
                 if val != 15{
                     pos := auto.select_tile_type(val, .wang_corner)
                     render_texture(x,y, pos)   
+                }
+                if val2 != 0 {
+                    pos := auto.select_tile_type(val2, .wang_edge)
+                    pos[0] += 4
+                    render_texture(x,y, pos) 
                 }
                 
             }
