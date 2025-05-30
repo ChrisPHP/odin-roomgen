@@ -34,8 +34,8 @@ generate_house :: proc(bedrooms, width, height: int) -> ([]int, []int) {
     generate_grid_array(&private_rooms, &grid, &floor)
     generate_grid_array(&hallway_rooms, &grid, &floor)
  
-    assign_room_public(&public_rooms)
-    assign_room_private(&private_rooms)
+    assign_room(&public_rooms, true)
+    assign_room(&private_rooms, false)
 
     find_hallway_connection(hallway_rooms[0], &public_rooms, &grid, &floor)
     find_hallway_connection(hallway_rooms[0], &private_rooms, &grid, &floor)
@@ -107,10 +107,9 @@ generate_grid_array :: proc(rooms: ^[dynamic]Room, grid, floor: ^[]int) {
 
     for d in doors {
         for x in 0..<3 {
-            for y in 0..<5 {
+            for y in 0..<3 {
                 tile_index := (d.y+y) * GRID_WIDTH + (d.x+x)
                 grid[tile_index] = 1
-                floor[tile_index] = 1
                 if d.vertical {
                     if y < 3 && x < 2 {
                         floor[tile_index] = 2
@@ -119,6 +118,7 @@ generate_grid_array :: proc(rooms: ^[dynamic]Room, grid, floor: ^[]int) {
                     tile_index = (d.y+y+2) * GRID_WIDTH + (d.x+x)
                     floor[tile_index] = 1
                 }
+            
             }
         }
     }
@@ -137,34 +137,28 @@ room_to_array :: proc(node: ^BSPNode, room_array: ^[dynamic]Room) {
     }
 }
 
-assign_room_public :: proc(room_array: ^[dynamic]Room) {
+assign_room :: proc(room_array: ^[dynamic]Room, public: bool) {
     room_lenth := len(room_array)
 
     sort.quick_sort_proc(room_array[:], sort_rooms)
 
     for &r, i in room_array {
-        if i == 0 {
-            r.type = .Living
-        } else if i == 1 {
-            r.type = .Dining
+        if public {
+            if i == 0 {
+                r.type = .Living
+            } else if i == 1 {
+                r.type = .Dining
+            } else {
+                r.type = .Kitchen
+            }
         } else {
-            r.type = .Kitchen
-        }
-    }
-}
-
-assign_room_private :: proc(room_array: ^[dynamic]Room) {
-    room_lenth := len(room_array)
-
-    sort.quick_sort_proc(room_array[:], sort_rooms)
-
-    for &r, i in room_array {
-        if i == 0 {
-            r.type = .Bedroom
-        } else if i == 1 {
-            r.type = .Bathroom
-        } else {
-            r.type = .Wardrobe
+            if i == 0 {
+                r.type = .Bedroom
+            } else if i == 1 {
+                r.type = .Bathroom
+            } else {
+                r.type = .Wardrobe
+            }
         }
     }
 }
