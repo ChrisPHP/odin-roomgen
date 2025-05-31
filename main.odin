@@ -199,6 +199,10 @@ main :: proc() {
 
                 if val1 == 1 {
                     render_texture(x,y, {5, 3})
+                } else if val1 == 3 {
+                    render_texture(x,y, {7, 3})
+                } else if val1 == 4 {
+                    render_texture(x,y, {6, 3})
                 }
 
                 if val2 != 0 {
