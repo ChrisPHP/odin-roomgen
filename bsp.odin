@@ -48,7 +48,6 @@ SplitDirection :: enum {
 }
 
 MIN_ROOM_SIZE :: 10  // Minimum width/height for a room
-MAX_ROOM_SIZE :: 20
 SPLIT_RATIO_MIN :: 0.4  // Minimum ratio for splitting (30%)
 SPLIT_RATIO_MAX :: 0.6  // Maximum ratio for splitting (70%)
 GRID_WIDTH := 50
@@ -97,10 +96,6 @@ choose_split_direction :: proc(width, height: f32) -> SplitDirection {
 
 should_split :: proc(width, height: int) -> bool {
     if width <= MIN_ROOM_SIZE || height <= MIN_ROOM_SIZE {
-        return false
-    }
-
-    if width <= MAX_ROOM_SIZE && height <= MAX_ROOM_SIZE {
         return false
     }
 

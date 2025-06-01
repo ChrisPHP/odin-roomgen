@@ -17,6 +17,13 @@ Block_Struct :: struct {
     ready: bool
 }
 
+HouseLayers :: struct {
+    roof: []int,
+    wall: []int,
+    floor: []int,
+    objects: []int
+}
+
 
 
 render_texture :: proc(x: int, y: int, pos: [2]int) {
@@ -164,15 +171,7 @@ main :: proc() {
     grid_height := 50
     
     auto.initialise_bit_level(grid_width, grid_height)
-
-    grid, floor := generate_house(2, grid_width, grid_height)
-    defer delete(grid)
-    defer delete(floor)
-
-    new_grid := auto.create_bit_mask(&grid, 1, .wang_corner)
-    new_floor := auto.create_bit_mask(&floor, 2, .wang_edge)
-    defer delete(new_grid)
-    defer delete(new_floor)
+    house := generate_house_layout(grid_width, grid_height)
 
     for !rl.WindowShouldClose() {
         rl.BeginDrawing()
@@ -193,9 +192,9 @@ main :: proc() {
                 */
 
                 
-                val := new_grid[size]
-                val1 := floor[size]
-                val2 := new_floor[size]
+                val := house.roof[size]
+                val1 := house.floor[size]
+                val2 := house.wall[size]
 
                 if val1 == 1 {
                     render_texture(x,y, {5, 3})
@@ -221,6 +220,10 @@ main :: proc() {
 
         rl.EndDrawing()
     }
+
+    delete(house.floor)
+    delete(house.roof)
+    delete(house.wall)
     rl.UnloadTexture(TEXTURE)
     rl.CloseWindow()
 }

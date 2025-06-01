@@ -3,7 +3,8 @@ package main
 import "core:math/rand"
 import "core:fmt"
 import "core:sort"
-import "core:slice"
+
+import auto "autotile"
 
 Door :: struct {
     x, y: int,
@@ -19,8 +20,23 @@ Index_Value :: struct {
 sort_rooms :: proc(a, b: Index_Value) -> int {
     return b.size - a.size
 }
+
+split_into_percentages_accurate :: proc(total: int, percentages: []f32) -> []int {
+    result := make([]int, len(percentages))
+    running_total := 0
+    running_percentage :f32= 0.00
+    
+    for i in 0..<len(percentages) {
+        running_percentage += percentages[i]
+        target_total := int(f32(total) * running_percentage + 0.5) // Round to nearest
+        result[i] = target_total - running_total
+        running_total = target_total
+    }
+    
+    return result
+}
  
-generate_house :: proc(bedrooms, width, height: int) -> ([]int, []int) {
+generate_house_array :: proc(bedrooms, width, height: int, ratios: []f32) -> ([]int, []int) {
     grid := make([]int, width*height)
     floor := make([]int, width*height)
 
@@ -28,13 +44,16 @@ generate_house :: proc(bedrooms, width, height: int) -> ([]int, []int) {
     private_rooms := make([dynamic]Room)
     hallway_rooms := make([dynamic]Room)
 
-    public_root := generate_bsp(50, 25,50, 3, {0, 0})
+    values := split_into_percentages_accurate(50, ratios)
+    defer delete(values)
+
+    public_root := generate_bsp(50, values[0], 50, 3, {0, 0})
     room_to_array(public_root, &public_rooms)
 
-    hallway_root := generate_bsp(50, 10, 50, 0, {0,25})
+    hallway_root := generate_bsp(50, values[2], 50, 0, {0,values[0]})
     room_to_array(hallway_root, &hallway_rooms)
 
-    private_root := generate_bsp(50, 15, 50, 2, {0,35})
+    private_root := generate_bsp(50, values[1], 50, 2, {0,values[0]+values[2]})
     room_to_array(private_root, &private_rooms)
 
     assign_room(&public_rooms, true)
@@ -274,4 +293,21 @@ add_exit_entrance_door :: proc(room: Room, grid, floor: ^[]int, width,height: in
             }   
         }
     }
+}
+
+generate_house_layout :: proc(width, height: int) -> HouseLayers {
+    grid, floor := generate_house_array(2, width, height, []f32{0.5, 0.3, 0.2})
+    defer delete(grid)
+
+    roof := auto.create_bit_mask(&grid, 1, .wang_corner)
+    wall := auto.create_bit_mask(&floor, 2, .wang_edge)
+
+    house := HouseLayers{
+        floor=floor,
+        roof=roof,
+        wall=wall,
+        objects=[]int{}
+    }
+
+    return house
 }
