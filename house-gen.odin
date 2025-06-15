@@ -36,6 +36,67 @@ split_into_percentages_accurate :: proc(total: int, percentages: []f32) -> []int
     return result
 }
  
+generate_normalized_random :: proc(count: int, min_value: f32) -> []f32 {
+    if f32(count) * min_value > 1.0 {
+        return {}
+    }
+    
+    numbers := make([]f32, count)
+    remaining := 1.0 - f32(count) * min_value
+    sum : f32 = 0
+
+    for i in 0..<count {
+        numbers[i] = rand.float32()
+        sum += numbers[i]
+    }
+
+    for i in 0..<count {
+        numbers[i] = min_value + (numbers[i] / sum) * remaining
+    }
+    
+    return numbers
+
+}
+
+check_for_min_value :: proc(min_val: int, input: []int) -> bool {
+    for i in input {
+        if i <= min_val {
+            return false
+        }
+    }
+    return true
+}
+
+generate_small_house :: proc(width, height: int) -> ([]int, []int) {
+    grid := make([]int, width*height)
+    floor := make([]int, width*height)
+
+    public_rooms := make([dynamic]Room)
+    hallway_rooms := make([dynamic]Room)
+
+    values := split_into_percentages_accurate(50, []f32{0.2, 0.8})
+    defer delete(values)
+
+    public_root := generate_bsp(50, values[1], 50, 3, {0, values[0]})
+    room_to_array(public_root, &public_rooms)
+    hallway_root := generate_bsp(50, values[0], 50, 0, {0,0})
+    room_to_array(hallway_root, &hallway_rooms)
+
+    assign_room(&public_rooms, true)
+
+    generate_grid_array(&public_rooms, &grid, &floor)
+    generate_grid_array(&hallway_rooms, &grid, &floor)
+    find_hallway_connection(hallway_rooms[0], &public_rooms, &grid, &floor)
+    add_exit_entrance_door(hallway_rooms[0], &grid, &floor, width, height)
+
+    free_bsp_tree(public_root)
+    free_bsp_tree(hallway_root)
+    delete(hallway_rooms)
+    delete(public_rooms)
+
+    return grid, floor
+}
+
 generate_house_array :: proc(bedrooms, width, height: int, ratios: []f32) -> ([]int, []int) {
     grid := make([]int, width*height)
     floor := make([]int, width*height)
@@ -50,10 +111,10 @@ generate_house_array :: proc(bedrooms, width, height: int, ratios: []f32) -> ([]
     public_root := generate_bsp(50, values[0], 50, 3, {0, 0})
     room_to_array(public_root, &public_rooms)
 
-    hallway_root := generate_bsp(50, values[2], 50, 0, {0,values[0]})
+    hallway_root := generate_bsp(50, values[1], 50, 0, {0,values[0]})
     room_to_array(hallway_root, &hallway_rooms)
 
-    private_root := generate_bsp(50, values[1], 50, 2, {0,values[0]+values[2]})
+    private_root := generate_bsp(50, values[2], 50, 2, {0,values[0]+values[1]})
     room_to_array(private_root, &private_rooms)
 
     assign_room(&public_rooms, true)
@@ -296,18 +357,39 @@ add_exit_entrance_door :: proc(room: Room, grid, floor: ^[]int, width,height: in
 }
 
 generate_house_layout :: proc(width, height: int) -> HouseLayers {
-    grid, floor := generate_house_array(2, width, height, []f32{0.5, 0.3, 0.2})
-    defer delete(grid)
+    ratios := generate_normalized_random(3, 0.2)
+    defer delete(ratios)
 
-    roof := auto.create_bit_mask(&grid, 1, .wang_corner)
-    wall := auto.create_bit_mask(&floor, 2, .wang_edge)
+    type := rand.float32()
+    if type > 0.5 {
+        grid, floor := generate_small_house(width, height)
+        defer delete(grid)
 
-    house := HouseLayers{
-        floor=floor,
-        roof=roof,
-        wall=wall,
-        objects=[]int{}
+        roof := auto.create_bit_mask(&grid, 1, .wang_corner)
+        wall := auto.create_bit_mask(&floor, 2, .wang_edge)
+
+        house := HouseLayers{
+            floor=floor,
+            roof=roof,
+            wall=wall,
+            objects=[]int{}
+        }
+
+        return house
+    } else {
+        grid, floor := generate_house_array(2, width, height, ratios)
+        defer delete(grid)
+
+        roof := auto.create_bit_mask(&grid, 1, .wang_corner)
+        wall := auto.create_bit_mask(&floor, 2, .wang_edge)
+
+        house := HouseLayers{
+            floor=floor,
+            roof=roof,
+            wall=wall,
+            objects=[]int{}
+        }
+
+        return house
     }
-
-    return house
 }
